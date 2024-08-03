@@ -5,7 +5,7 @@
     </div>
     <UserTable :users="users" />
     <Modal :isVisible="isModalVisible" @close="toggleModal">
-      <UserForm :users="users" @submit="handleSubmit" />
+      <UserForm :users="getAllUsers(users)" @submit="handleSubmit" />
     </Modal>
   </div>
 </template>
@@ -21,24 +21,57 @@ export default {
     UserForm,
     Modal,
   },
+
   data() {
     return {
       users: [
-        { id: 1, name: "MIKE TYSON", phone: "+88005553535" },
-        { id: 2, name: "Эльвира Набиуллина", phone: "+181818181818" },
+        {
+          id: 1,
+          name: "MIKE TYSON",
+          phone: "+88005553535",
+          children: [],
+          backgroundColor: "#08e9788a",
+        },
+        {
+          id: 2,
+          name: "Эльвира Набиуллина",
+          phone: "+181818181818",
+          children: [],
+          backgroundColor: "#ee3c068a",
+        },
       ],
       isModalVisible: false,
     };
   },
-
   methods: {
     toggleModal() {
       this.isModalVisible = !this.isModalVisible;
     },
     handleSubmit(user) {
-      this.users.push(user);
+      if (user.parent === null) {
+        user.backgroundColor = this.getRandomColor();
+      }
+      this.addUser(this.users, user);
       this.saveToLocalStorage();
       this.toggleModal();
+    },
+    addUser(users, user) {
+      if (user.parent === null) {
+        users.push(user);
+        return;
+      }
+
+      for (let i = 0; i < users.length; i++) {
+        if (users[i].id === user.parent) {
+          if (!users[i].children) {
+            this.$set(users[i], "children", []);
+          }
+          users[i].children.push(user);
+          return;
+        } else if (users[i].children) {
+          this.addUser(users[i].children, user);
+        }
+      }
     },
     saveToLocalStorage() {
       localStorage.setItem("users", JSON.stringify(this.users));
@@ -48,6 +81,25 @@ export default {
       if (users) {
         this.users = users;
       }
+    },
+    getAllUsers(users) {
+      let allUsers = [];
+      const traverse = (user) => {
+        allUsers.push(user);
+        if (user.children) {
+          user.children.forEach(traverse);
+        }
+      };
+      users.forEach(traverse);
+      return allUsers;
+    },
+    getRandomColor() {
+      const letters = "0123456789ABCDEF";
+      let color = "#";
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
     },
   },
   mounted() {
